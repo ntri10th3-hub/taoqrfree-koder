@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Dashboard - Tập Tành Koder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .neon-box { border: 1px solid rgba(56, 189, 248, 0.3); box-shadow: 0 0 20px rgba(56, 189, 248, 0.1); }
+        .log-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); transition: 0.3s; }
+        .log-card:hover { transform: scale(1.02); border-color: #38bdf8; }
+        /* Hiệu ứng click chuột */
+        .circle-effect {
+            position: fixed; width: 30px; height: 30px; border: 2px solid #38bdf8;
+            border-radius: 50%; pointer-events: none; animation: ripple 0.5s ease-out forwards; z-index: 999;
+        }
+        @keyframes ripple { from { transform: scale(0.5); opacity: 1; } to { transform: scale(2.5); opacity: 0; } }
+    </style>
+</head>
+<body class="p-5">
+    <div class="max-w-xl mx-auto">
+        <header class="text-center py-6">
+            <h1 class="text-2xl font-black text-sky-400 tracking-widest uppercase">Hệ Thống Quản Trị</h1>
+            <p class="text-slate-500 text-xs mt-1">Bản quyền © Tập Tành Koder</p>
+        </header>
+
+        <div class="neon-box bg-slate-900 rounded-3xl p-6 mb-8 flex justify-between items-center">
+            <div>
+                <h2 class="font-bold text-lg">Chế độ bảo trì</h2>
+                <p id="maint-desc" class="text-xs text-emerald-400">Hệ thống đang mở</p>
+            </div>
+            <button onclick="toggleMaint()" id="btnMaint" class="w-14 h-7 bg-slate-700 rounded-full relative transition-all">
+                <div id="dot" class="w-5 h-5 bg-white rounded-full absolute top-1 left-1 transition-all shadow-md"></div>
+            </button>
+        </div>
+
+        <h3 class="text-sm font-bold text-slate-400 mb-4 px-2 uppercase tracking-tighter">Nhật ký truy cập (IPv4 & IPv6)</h3>
+        <div id="log-container" class="space-y-4">
+            </div>
+
+        <footer class="text-center mt-20 text-slate-600 text-[10px] uppercase">
+            Designed by <span class="text-sky-500">Tập Tành Koder</span>
+        </footer>
+    </div>
+
+    <script>
+        function toggleMaint() {
+            let isMaint = localStorage.getItem('webMaintenance') === 'true';
+            isMaint = !isMaint;
+            localStorage.setItem('webMaintenance', isMaint);
+            updateStatus(isMaint);
+        }
+
+        function updateStatus(isMaint) {
+            const btn = document.getElementById('btnMaint');
+            const dot = document.getElementById('dot');
+            const desc = document.getElementById('maint-desc');
+            if(isMaint) {
+                btn.style.background = '#ef4444';
+                dot.style.transform = 'translateX(28px)';
+                desc.innerText = 'Đang chặn truy cập (Bảo trì)';
+                desc.className = 'text-xs text-red-500';
+            } else {
+                btn.style.background = '#10b981';
+                dot.style.transform = 'translateX(0)';
+                desc.innerText = 'Hệ thống đang mở';
+                desc.className = 'text-xs text-emerald-400';
+            }
+        }
+
+        function renderLogs() {
+            const logs = JSON.parse(localStorage.getItem('accessLogs') || '[]');
+            const container = document.getElementById('log-container');
+            container.innerHTML = logs.reverse().map(log => `
+                <div class="log-card border border-slate-700 p-4 rounded-2xl">
+                    <div class="flex justify-between text-[10px] mb-2 text-slate-400">
+                        <span>🕒 ${log.time}</span>
+                        <span class="text-sky-400 font-bold italic">${log.agent}</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1">
+                        <div class="text-xs font-mono"><span class="text-sky-500 font-bold">IPv4:</span> ${log.ipv4}</div>
+                        <div class="text-xs font-mono truncate"><span class="text-purple-500 font-bold">IPv6:</span> ${log.ipv6}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Click Effect
+        window.addEventListener('mousedown', (e) => {
+            let d = document.createElement('div');
+            d.className = 'circle-effect';
+            d.style.left = e.clientX - 15 + 'px';
+            d.style.top = e.clientY - 15 + 'px';
+            document.body.appendChild(d);
+            setTimeout(() => d.remove(), 500);
+        });
+
+        updateStatus(localStorage.getItem('webMaintenance') === 'true');
+        setInterval(renderLogs, 1500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cổng Thanh Toán - Tập Tành Koder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;600;800&display=swap');
+        body { background: #fdfdfd; font-family: 'Lexend', sans-serif; }
+        .payment-box { background: #ffffff; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); }
+        #maint-screen {
+            position: fixed; inset: 0; background: white; z-index: 9999;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .heart-click {
+            position: fixed; pointer-events: none; animation: heartFly 0.7s ease-out forwards;
+            font-size: 20px; z-index: 10000;
+        }
+        @keyframes heartFly { to { transform: translateY(-80px) scale(1.5); opacity: 0; } }
+    </style>
+</head>
+<body class="p-4 flex flex-col min-h-screen items-center">
+
+    <div id="maint-screen" class="text-center p-10">
+        <div class="text-6xl animate-bounce mb-6">🚧</div>
+        <h1 class="text-xl font-extrabold text-slate-800 uppercase">Wed site hiện tại đang tạm ngưng</h1>
+        <p class="text-slate-400 mt-2 font-medium">Vui lòng chờ, chúng tôi sẽ sớm quay lại!</p>
+        <p class="mt-10 text-[10px] text-slate-300 tracking-widest">© Tập Tành Koder</p>
+    </div>
+
+    <header class="w-full max-w-sm py-10 text-center">
+        <h2 class="text-3xl font-black text-slate-900 tracking-tighter">QUÉT MÃ QR</h2>
+        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Tập Tành Koder Service</p>
+    </header>
+
+    <div class="w-full max-w-sm payment-box p-8 border border-slate-100">
+        <div class="space-y-6">
+            <div>
+                <label class="text-[10px] font-black text-slate-400 ml-2 mb-2 block uppercase">Chọn Ngân Hàng</label>
+                <select id="bank" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 ring-blue-500 font-bold text-slate-700">
+                    <option value="ICB">VietinBank</option>
+                    <option value="VCB">Vietcombank</option>
+                    <option value="MB">MB Bank</option>
+                    <option value="TCB">Techcombank</option>
+                    <option value="ACB">ACB</option>
+                    <option value="VPB">VPBank</option>
+                    <option value="TPB">TPBank</option>
+                    <option value="VBA">Agribank</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black text-slate-400 ml-2 mb-2 block uppercase">Số Tài Khoản</label>
+                <input type="number" id="stk" placeholder="Nhập STK nhận tiền..." class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 ring-blue-500 font-bold">
+            </div>
+
+            <button onclick="createQR()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm tracking-widest hover:bg-blue-600 transition-all active:scale-95">
+                TẠO MÃ THANH TOÁN
+            </button>
+        </div>
+
+        <div id="qr-result" class="mt-10 hidden text-center border-t border-slate-50 pt-8 animate-fade-in">
+            <div class="bg-slate-50 p-4 rounded-3xl inline-block mb-4">
+                <img id="qr-img" src="" alt="Mã QR" class="w-56 h-56 rounded-xl mx-auto">
+            </div>
+            
+            <button onclick="saveQR()" class="flex items-center justify-center w-full gap-2 text-blue-600 font-black text-xs uppercase tracking-widest">
+                <span>📥</span> Tải xuống mã QR
+            </button>
+        </div>
+    </div>
+
+    <footer class="mt-auto py-10 text-[10px] font-bold text-slate-300 tracking-widest uppercase">
+        Bản quyền © Tập Tành Koder
+    </footer>
+
+    <script>
+        // Lấy IP thực (v4 & v6)
+        async function fetchIP() {
+            try {
+                const [v4, v6] = await Promise.all([
+                    fetch('https://api.ipify.org?format=json').then(r => r.json()),
+                    fetch('https://api64.ipify.org?format=json').then(r => r.json())
+                ]);
+                let logs = JSON.parse(localStorage.getItem('accessLogs') || '[]');
+                logs.push({
+                    ipv4: v4.ip,
+                    ipv6: v6.ip,
+                    time: new Date().toLocaleTimeString('vi-VN'),
+                    agent: "Mobile Device"
+                });
+                localStorage.setItem('accessLogs', JSON.stringify(logs.slice(-30)));
+            } catch (e) { console.log("Lỗi IP"); }
+        }
+
+        // Kiểm tra bảo trì
+        setInterval(() => {
+            const isMaint = localStorage.getItem('webMaintenance') === 'true';
+            document.getElementById('maint-screen').style.display = isMaint ? 'flex' : 'none';
+        }, 1000);
+
+        // Tạo mã QR
+        function createQR() {
+            const bank = document.getElementById('bank').value;
+            const stk = document.getElementById('stk').value;
+            if(!stk) return alert("Vui lòng nhập STK!");
+
+            const qrUrl = `https://img.vietqr.io/image/${bank}-${stk}-compact.png?label=TTKoder`;
+            const img = document.getElementById('qr-img');
+            
+            img.onload = () => {
+                document.getElementById('qr-result').classList.remove('hidden');
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            };
+            img.src = qrUrl;
+        }
+
+        // Tải xuống mã QR
+        async function saveQR() {
+            const img = document.getElementById('qr-img');
+            if(!img.src) return;
+            try {
+                const response = await fetch(img.src);
+                const blob = await response.blob();
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `QR_ThanhToan_${Date.now()}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                alert("Không thể tải ảnh, vui lòng chụp màn hình hoặc nhấn giữ ảnh để lưu.");
+            }
+        }
+
+        // Hiệu ứng tim khi click
+        window.addEventListener('click', (e) => {
+            let h = document.createElement('span');
+            h.innerHTML = '❤️';
+            h.className = 'heart-click';
+            h.style.left = e.clientX - 10 + 'px';
+            h.style.top = e.clientY - 10 + 'px';
+            document.body.appendChild(h);
+            setTimeout(() => h.remove(), 700);
+        });
+
+        fetchIP();
+    </script>
+</body>
+</html>
